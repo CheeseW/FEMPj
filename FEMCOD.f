@@ -102,7 +102,7 @@ C    .            A(MPSTIF),A(MPFEXT))
       CALL CSTSTF(A(MPCORD),IA(IPKFIX),IA(IPNOD),IA(IPIADR),IA(IPMAT),
      .            A(MPSTIF),A(MPFEXT))
 C      CALL Q9STF(A(MPCORD),IA(IPKFIX),IA(IPNOD),IA(IPIADR),IA(IPMAT),
-C     .            A(MPSTIF),A(MPFEXT))
+C     .           A(MPSTIF),A(MPFEXT))
 C     CALL BARSTF(A(MPCORD),IA(IPKFIX),IA(IPNOD),IA(IPIADR),IA(IPMAT),
 C    .            A(MPSTIF),A(MPFEXT))
 C
@@ -186,16 +186,16 @@ C#####################################################################
       COMMON /DEVICE/ IIN,IOUT,IBUG
       DIMENSION XX(NSD,NUMNP),KFIX(NEQ),NOD(NNPE,NUMEL),
      .          IADRES(NEQ),MATNUM(NUMEL),S(LENGTH),FEXT(NEQ),
-     .          X(2,3),W(3,6),B(3,6),AA(3),BB(3),E(3,3),T(6,6)
+     .          X(2,NNPE),W(3,6),B(3,2*NNPE),AA(3),BB(3),E(3,3),T(6,6)
 C
 C---- CSTSTF--CONSTANT STRAIN TRIANGLE STIFFNESS
 C---- FORM STIFFNESS MATRIX FOR A 2-DOF/NODE CONST STRAIN TRIANGLE
 C
 C     THIS SUBROUTINE ASSUMES THAT THE ELEMENT THICKNESS IS RMAT(3,MAT)
 C
-C     Clear B matrix
+C     Clear B matrix 
       DO 10 I=1,3
-      DO 10 J=1,6
+      DO 10 J=1,2*NNPE
    10 B(I,J)=0.
 C
       DO 100 N=1,NUMEL
@@ -235,8 +235,8 @@ C######################################################################
       SUBROUTINE CST1(X,XX,NOD,AA,BB,B,AREA,N)
       IMPLICIT DOUBLE PRECISION (A-H,O-Z),INTEGER(I-N)
       COMMON /KONTRL/ NUMNP,NDOF,NUMEL,NNPE,NSD,NEQ,LENGTH
-      DIMENSION X(2,3),XX(NSD,NUMNP),NOD(NNPE,NUMEL),AA(3),
-     .          BB(3),B(3,6)
+      DIMENSION X(2,NNPE),XX(NSD,NUMNP),NOD(NNPE,NUMEL),AA(3),
+     .          BB(3),B(3,2*NNPE)
 C
 C---- SUBROUTINE TO COLLECT LOCAL NODAL COORDINATES, EVALUATE SHAPE
 C     FUNCTIONS AND FORM THE STRAIN-DISPLACEMENT MATRIX, B, FOR THE 
@@ -363,21 +363,35 @@ C#####################################################################
       COMMON /KONTRL/ NUMNP,NDOF,NUMEL,NNPE,NSD,NEQ,LENGTH
       COMMON /MATRL / NMAT,RMAT(5,4)
       COMMON /DEVICE/ IIN,IOUT,IBUG
-      DIMENSION XX(NSD,NUMNP),KFIX(NEQ),NOD(NNPE,NUMEL),
+      DIMENSION GQ(3),GW(3),XX(NSD,NUMNP),KFIX(NEQ),NOD(NNPE,NUMEL),
      .          IADRES(NEQ),MATNUM(NUMEL),S(LENGTH),FEXT(NEQ),
-     .          X(2,3),W(3,6),B(3,6),AA(3),BB(3),E(3,3),T(6,6)
+     .          X(2,NNPE),W(3,6),B(3,2*NNPE),AA(3),BB(3),E(3,3),T(6,6)
+      INTEGER DP
 C
-C---- CSTSTF--CONSTANT STRAIN TRIANGLE STIFFNESS
-C---- FORM STIFFNESS MATRIX FOR A 2-DOF/NODE CONST STRAIN TRIANGLE
+C---- Q9 -- 9-node isoparamatric
+C---- FORM STIFFNESS MATRIX FOR A 2-DOF/NODE Q9 ELEMENT
 C
 C     THIS SUBROUTINE ASSUMES THAT THE ELEMENT THICKNESS IS RMAT(3,MAT)
 C
+C     Initialize gaussian locations and weights
+      DP = 3
+      GQ(1) = 0.0000000000000000
+      GQ(2) = -0.7745966692414834
+      GQ(3) = 0.7745966692414834
+
+      GW(1) = 0.8888888888888888
+      GW(2) = 0.5555555555555556
+      GW(3) = 0.5555555555555556
+
 C     Clear B matrix
       DO 10 I=1,3
-      DO 10 J=1,6
+      DO 10 J=1,2*NNPE
    10 B(I,J)=0.
 C
       DO 100 N=1,NUMEL
+      DO 100 II=1,DP
+      DO 100 JJ=1,DP
+
       MAT=MATNUM(N)
       THICK=RMAT(3,MAT)
 C
@@ -408,6 +422,49 @@ C---- ASSEMBLE STIFFNESS MATRIX
       CALL ADSTIF(KFIX,S,FEXT,NOD,IADRES,T,RE,6,N,0)
 C
   100 CONTINUE
+      RETURN
+      END
+C######################################################################
+      SUBROUTINE Q9(C,X,XX,NOD,AA,BB,B,AREA,N)
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z),INTEGER(I-N)
+      COMMON /KONTRL/ NUMNP,NDOF,NUMEL,NNPE,NSD,NEQ,LENGTH
+      DIMENSION X(2,NNPE),XX(NSD,NUMNP),NOD(NNPE,NUMEL),AA(3),
+     .          BB(3),B(3,2*NNPE)
+C
+C---- SUBROUTINE TO COLLECT LOCAL NODAL COORDINATES, EVALUATE SHAPE
+C     FUNCTIONS AND FORM THE STRAIN-DISPLACEMENT MATRIX, B, FOR THE 
+C     CONSTANT STRAIN TRIANGLE (B IS ASSUMED TO BE INITIALIZED TO
+C     ZERO BY THE CALLING ROUTINE)
+C
+C---- COLLECT NODAL COORDINATES
+      DO 20 I=1,3
+      X(1,I)=XX(1,NOD(I,N))
+   20 X(2,I)=XX(2,NOD(I,N))
+      AREA=((X(1,2)-X(1,1))*(X(2,3)-X(2,1))-
+     .     (X(1,3)-X(1,1))*(X(2,2)-X(2,1)))/2.
+C
+C---- EVALUATE SHAPE FUNCTION COEFFICIENTS
+      AA(1)=X(1,3)-X(1,2)
+      AA(2)=X(1,1)-X(1,3)
+      AA(3)=X(1,2)-X(1,1)
+      BB(1)=X(2,2)-X(2,3)
+      BB(2)=X(2,3)-X(2,1)
+      BB(3)=X(2,1)-X(2,2)
+C
+C---- B-MATRIX
+      B(1,1)=BB(1)/(2.*AREA)
+      B(1,3)=BB(2)/(2.*AREA)
+      B(1,5)=BB(3)/(2.*AREA)
+      B(2,2)=AA(1)/(2.*AREA)
+      B(2,4)=AA(2)/(2.*AREA)
+      B(2,6)=AA(3)/(2.*AREA)
+      B(3,1)=B(2,2)
+      B(3,2)=B(1,1)
+      B(3,3)=B(2,4)
+      B(3,4)=B(1,3)
+      B(3,5)=B(2,6)
+      B(3,6)=B(1,5)
+C
       RETURN
       END
 C######################################################################
