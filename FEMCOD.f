@@ -99,10 +99,10 @@ C
 C---- FORM STIFFNESS MATRIX
 C     CALL BEMSTF(A(MPCORD),IA(IPKFIX),IA(IPNOD),IA(IPIADR),IA(IPMAT),
 C    .            A(MPSTIF),A(MPFEXT))
-      CALL CSTSTF(A(MPCORD),IA(IPKFIX),IA(IPNOD),IA(IPIADR),IA(IPMAT),
-     .            A(MPSTIF),A(MPFEXT))
-C      CALL Q9STF(A(MPCORD),IA(IPKFIX),IA(IPNOD),IA(IPIADR),IA(IPMAT),
-C     .           A(MPSTIF),A(MPFEXT))
+C      CALL CSTSTF(A(MPCORD),IA(IPKFIX),IA(IPNOD),IA(IPIADR),IA(IPMAT),
+C     .            A(MPSTIF),A(MPFEXT))
+      CALL Q9STF(A(MPCORD),IA(IPKFIX),IA(IPNOD),IA(IPIADR),IA(IPMAT),
+     .           A(MPSTIF),A(MPFEXT))
 C     CALL BARSTF(A(MPCORD),IA(IPKFIX),IA(IPNOD),IA(IPIADR),IA(IPMAT),
 C    .            A(MPSTIF),A(MPFEXT))
 C
@@ -135,7 +135,8 @@ C
      . ((I,J,A(MPDISP+(I-1)*NDOF+J-1),J=1,NDOF),I=1,NUMNP)
 C
 C---- POST-PROCESS DATA
-      CALL CSTSTR(A(MPCORD),IA(IPNOD),IA(IPMAT),A(MPDISP))
+      CALL Q9STR(A(MPCORD),IA(IPNOD),IA(IPMAT),A(MPDISP))
+C     CALL CSTSTR(A(MPCORD),IA(IPNOD),IA(IPMAT),A(MPDISP))
 C     CALL BARSTR(A(MPCORD),IA(IPNOD),IA(IPMAT),A(MPDISP))
 C
       CALL OPENER(2)
@@ -367,9 +368,10 @@ C#####################################################################
       COMMON /DEVICE/ IIN,IOUT,IBUG
       DIMENSION GQ(3),GW(3),XX(NSD,NUMNP),KFIX(NEQ),NOD(NNPE,NUMEL),
      .          IADRES(NEQ),MATNUM(NUMEL),S(LENGTH),FEXT(NEQ),
-     .     X(NSD,NNPE),W(3,NSD*NNPE),B(3,NSD*NNPE),AA(3),BB(3),
-     .     E(3,3),T(NSD*NNPE,NSD*NNPE),JA(NSD,NSD)
+     .          X(NSD,NNPE),W(3,NSD*NNPE),B(3,NSD*NNPE),
+     .          E(3,3),T(NSD*NNPE,NSD*NNPE),C(NSD)
       INTEGER DP
+      DOUBLE PRECISION JAD
 C
 C---- Q9 -- 9-node isoparamatric
 C---- FORM STIFFNESS MATRIX FOR A 2-DOF/NODE Q9 ELEMENT
@@ -392,83 +394,160 @@ C     Clear B matrix
    10 B(I,J)=0.
 C
       DO 100 N=1,NUMEL
-      DO 100 II=1,DP
-      DO 100 JJ=1,DP
-
       MAT=MATNUM(N)
       THICK=RMAT(3,MAT)
+      DO 100 II=1,DP
+      DO 100 JJ=1,DP
+      C(1) = GQ(II)
+      C(2) = GQ(JJ)
+C      CALL WR('xi      ',C(1),1)
+C      CALL WR('eta     ',C(2),1)
+
 C
 C---- COLLECT NODAL COORDS., EVALUATE SHAPE FUNCTIONS AND B-MATRIX
-      CALL CST1(X,XX,NOD,AA,BB,B,AREA,N)
-C
+      CALL Q9(C,X,XX,NOD,B,JAD,N)
+
 C---- EVALUATE MATERIAL MATRIX, E, FOR PLANE STRESS
       CALL EMATRX(E,MAT)
 C
 C---- COMPUTE  E*B
       DO 40 I=1,3
-      DO 40 J=1,6
+      DO 40 J=1,NNPE
       SUM=0.
       DO 30 K=1,3
    30 SUM=SUM+E(I,K)*B(K,J)
    40 W(I,J)=SUM
 C
-C---- COMPUTE B(TRANSPOSE)*E*B
-      DO 60 I=1,6
-      DO 60 J=I,6
+C---- COMPUTE T = B(TRANSPOSE)*E*B
+      DO 60 I=1,NNPE
+      DO 60 J=I,NNPE
       SUM=0.
       DO 50 K=1,3
    50 SUM=SUM+B(K,I)*W(K,J)
-      T(I,J)=SUM*THICK*AREA
+      T(I,J)=SUM*THICK*JAD*GW(II)*GW(JJ)
    60 T(J,I)=T(I,J)
-C
+
 C---- ASSEMBLE STIFFNESS MATRIX
-      CALL ADSTIF(KFIX,S,FEXT,NOD,IADRES,T,RE,6,N,0)
-C
+      CALL ADSTIF(KFIX,S,FEXT,NOD,IADRES,T,RE,NSD*NNPE,N,0)
   100 CONTINUE
       RETURN
       END
 C######################################################################
-      SUBROUTINE Q9(C,X,XX,NOD,AA,BB,B,JA,N)
+      SUBROUTINE Q9(C,X,XX,NOD,B,JAD,N)
       IMPLICIT DOUBLE PRECISION (A-H,O-Z),INTEGER(I-N)
       COMMON /KONTRL/ NUMNP,NDOF,NUMEL,NNPE,NSD,NEQ,LENGTH
-      DIMENSION X(NSD,NNPE),XX(NSD,NUMNP),NOD(NNPE,NUMEL),AA(3),
-     .          BB(3),B(3,NSD*NNPE),JA(NSD,NSD),C(NSD)
+      DIMENSION X(NSD,NNPE),XX(NSD,NUMNP),NOD(NNPE,NUMEL),
+     .          B(3,NSD*NNPE),JA(NSD,NSD),C(NSD),DN(NSD,NNPE),
+     .          GAMA(NSD,NSD),DNX(NSD,NNPE)
+      DOUBLE PRECISION JA,JAD
 C
 C---- SUBROUTINE TO COLLECT LOCAL NODAL COORDINATES, EVALUATE SHAPE
 C     FUNCTIONS AND FORM THE STRAIN-DISPLACEMENT MATRIX, B, FOR THE
 C     CONSTANT STRAIN TRIANGLE (B IS ASSUMED TO BE INITIALIZED TO
 C     ZERO BY THE CALLING ROUTINE)
 C
+C
 C---- COLLECT NODAL COORDINATES
-      DO 20 I=1,3
+      DO 20 I=1,NNPE
       X(1,I)=XX(1,NOD(I,N))
    20 X(2,I)=XX(2,NOD(I,N))
-      AREA=((X(1,2)-X(1,1))*(X(2,3)-X(2,1))-
-     .     (X(1,3)-X(1,1))*(X(2,2)-X(2,1)))/2.
-C
-C---- EVALUATE SHAPE FUNCTION COEFFICIENTS
-      AA(1)=X(1,3)-X(1,2)
-      AA(2)=X(1,1)-X(1,3)
-      AA(3)=X(1,2)-X(1,1)
-      BB(1)=X(2,2)-X(2,3)
-      BB(2)=X(2,3)-X(2,1)
-      BB(3)=X(2,1)-X(2,2)
-C
-C---- B-MATRIX
-      B(1,1)=BB(1)/(2.*AREA)
-      B(1,3)=BB(2)/(2.*AREA)
-      B(1,5)=BB(3)/(2.*AREA)
-      B(2,2)=AA(1)/(2.*AREA)
-      B(2,4)=AA(2)/(2.*AREA)
-      B(2,6)=AA(3)/(2.*AREA)
-      B(3,1)=B(2,2)
-      B(3,2)=B(1,1)
-      B(3,3)=B(2,4)
-      B(3,4)=B(1,3)
-      B(3,5)=B(2,6)
-      B(3,6)=B(1,5)
-C
+
+      CALL Q9DN(C,DN)
+C      DO 30 J=1,2
+C      DO 30 I=1,9
+C   30 CALL WR('N       ', DN(J,I), 1)
+C---- Compute JA = DN*X
+C---- TODO: potentially accel with different loop order
+      DO 30 I=1,NSD
+      DO 30 J=1,NSD
+      TEMP = 0.
+      DO 40 K=1,NNPE
+   40 TEMP = TEMP+DN(I,K)*X(J,K)
+   30 JA(I,J)=TEMP
+C---- Compute GAMA = J^-1
+      JAD = JA(1,1)*JA(2,2)-JA(1,2)*JA(2,1)
+      GAMA(1,1) = JA(2,2)/JAD
+      GAMA(1,2) = -JA(1,2)/JAD
+      GAMA(2,1) = -JA(2,1)/JAD
+      GAMA(2,2) = JA(1,1)/JAD
+
+C---- Compute DNX = GAMA*DN
+      DO 50 I=1,NSD
+      DO 50 J=1,NNPE
+      TEMP = 0.
+      DO 60 K=1,NSD
+   60 TEMP = TEMP+GAMA(I,K)*DN(K,J)
+   50 DNX(I,J)=TEMP
+
+C---- Compute B
+      DO 70 I=1,NNPE
+      B(1,I*2-1) = DNX(1,I)
+      B(1,I*2)   = 0.
+      B(2,I*2-1) = 0.
+      B(2,I*2)   = DNX(2,I)
+      B(3,I*2-1) = DNX(2,I)
+   70 B(3,I*2)   = DNX(1,I)
       RETURN
+      END
+C######################################################################
+      SUBROUTINE Q9DN(C,DN)
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z),INTEGER(I-N)
+      COMMON /KONTRL/ NUMNP,NDOF,NUMEL,NNPE,NSD,NEQ,LENGTH
+      DIMENSION DN(NSD,NNPE),C(NSD),TEMP(2,3),DTEMP(2,3)
+C
+C---- Subroutine to compute partial derivatives of shape function
+C     for Q9
+C     Need NSD == 2, NNPE = 9
+C
+C---- Collect TEMP [(xi^2-xi)/2, xi^2-1, (xi^2-xi)/2; etta...]
+      TEMP(1,1)=(C(1)*C(1)-C(1))/2.
+      TEMP(1,2)=C(1)*C(1)-1.
+      TEMP(1,3)=(C(1)*C(1)+C(1))/2.
+
+      TEMP(2,1)=(C(2)*C(2)-C(2))/2.
+      TEMP(2,2)=C(2)*C(2)-1.
+      TEMP(2,3)=(C(2)*C(2)+C(2))/2.
+
+C---- Collect DTEMP[xi-1/2,      2xi,    xi+1/2;      etta...]
+      DTEMP(1,1)=C(1)-1./2.
+      DTEMP(1,2)=2.*C(1)
+      DTEMP(1,3)=C(1)+1./2.
+
+      DTEMP(2,1)=C(2)-1./2.
+      DTEMP(2,2)=2.*C(2)
+      DTEMP(2,3)=C(2)+1./2.
+C---- Construct N,xi and N,etta
+      DN(1,1) = DTEMP(1,1)*TEMP(2,1)
+      DN(1,2) = DTEMP(1,3)*TEMP(2,1)
+      DN(1,3) = DTEMP(1,3)*TEMP(2,3)
+      DN(1,4) = DTEMP(1,1)*TEMP(2,3)
+      DN(1,5) = DTEMP(1,2)*TEMP(2,1)
+      DN(1,6) = DTEMP(1,3)*TEMP(2,2)
+      DN(1,7) = DTEMP(1,2)*TEMP(2,3)
+      DN(1,8) = DTEMP(1,1)*TEMP(2,2)
+      DN(1,9) = DTEMP(1,2)*TEMP(2,2)
+
+      DN(2,1) = TEMP(1,1)*DTEMP(2,1)
+      DN(2,2) = TEMP(1,3)*DTEMP(2,1)
+      DN(2,3) = TEMP(1,3)*DTEMP(2,3)
+      DN(2,4) = TEMP(1,1)*DTEMP(2,3)
+      DN(2,5) = TEMP(1,2)*DTEMP(2,1)
+      DN(2,6) = TEMP(1,3)*DTEMP(2,2)
+      DN(2,7) = TEMP(1,2)*DTEMP(2,3)
+      DN(2,8) = TEMP(1,1)*DTEMP(2,2)
+      DN(2,9) = TEMP(1,2)*DTEMP(2,2)
+
+      RETURN
+      END
+C######################################################################
+      SUBROUTINE Q9STR(XX,NOD,MATNUM,DD)
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z), INTEGER (I-N)
+      COMMON /KONTRL/ NUMNP,NDOF,NUMEL,NNPE,NSD,NEQ,LENGTH
+      COMMON /MATRL / NMAT,RMAT(5,4)
+      COMMON /DEVICE/ IIN,IOUT,IBUG
+      DIMENSION XX(NSD,NUMNP),NOD(NNPE,NUMEL),MATNUM(NUMEL),
+     .          DD(NDOF,NUMNP),X(NSD,NNPE),W(3),B(3,2*NNPE),AA(3),BB(3),E(3,3),
+     .          D(6),STRS(3)
       END
 C######################################################################
       SUBROUTINE BEMSTF(X,KFIX,NOD,IADRES,MATNUM,S,FEXT)
