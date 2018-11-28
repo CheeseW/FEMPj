@@ -363,15 +363,15 @@ C
 C#####################################################################
       SUBROUTINE Q9STF(XX,KFIX,NOD,IADRES,MATNUM,S,FEXT)
       IMPLICIT DOUBLE PRECISION (A-H,O-Z),INTEGER(I-N)
+      INTEGER DP
+      DOUBLE PRECISION JAD
       COMMON /KONTRL/ NUMNP,NDOF,NUMEL,NNPE,NSD,NEQ,LENGTH
       COMMON /MATRL / NMAT,RMAT(5,4)
       COMMON /DEVICE/ IIN,IOUT,IBUG
-      DIMENSION GQ(3),GW(3),XX(NSD,NUMNP),KFIX(NEQ),NOD(NNPE,NUMEL),
+      DIMENSION GQ(1),GW(1),XX(NSD,NUMNP),KFIX(NEQ),NOD(NNPE,NUMEL),
      .          IADRES(NEQ),MATNUM(NUMEL),S(LENGTH),FEXT(NEQ),
      .          X(NSD,NNPE),W(3,NSD*NNPE),B(3,NSD*NNPE),
      .          E(3,3),T(NSD*NNPE,NSD*NNPE),C(NSD)
-      INTEGER DP
-      DOUBLE PRECISION JAD
 C
 C---- Q9 -- 9-node isoparamatric
 C---- FORM STIFFNESS MATRIX FOR A 2-DOF/NODE Q9 ELEMENT
@@ -379,15 +379,17 @@ C
 C     THIS SUBROUTINE ASSUMES THAT THE ELEMENT THICKNESS IS RMAT(3,MAT)
 C
 C     Initialize gaussian locations and weights
-      DP = 3
-      GQ(1) = 0.0000000000000000
-      GQ(2) = -0.7745966692414834
-      GQ(3) = 0.7745966692414834
+      DP = 1
+C      GQ(1) = 0.0000000000000000
+C      GQ(2) = -0.7745966692414834
+C      GQ(3) = 0.7745966692414834
 
-      GW(1) = 0.8888888888888888
-      GW(2) = 0.5555555555555556
-      GW(3) = 0.5555555555555556
+C      GW(1) = 0.8888888888888888
+C      GW(2) = 0.5555555555555556
+C      GW(3) = 0.5555555555555556
 
+      GQ(1) = 0
+      GW(1) = 2
 C     Clear B matrix
       DO 10 I=1,3
       DO 10 J=1,NSD*NNPE
@@ -409,23 +411,31 @@ C---- COLLECT NODAL COORDS., EVALUATE SHAPE FUNCTIONS AND B-MATRIX
 
 C---- EVALUATE MATERIAL MATRIX, E, FOR PLANE STRESS
       CALL EMATRX(E,MAT)
-C
+
+      DO 70 I=1,3
+      DO 70 J=1,NNPE*NSD
+   70 CALL WR('B       ',B(I,J),1)
+
 C---- COMPUTE  E*B
       DO 40 I=1,3
-      DO 40 J=1,NNPE
+      DO 40 J=1,NNPE*NSD
       SUM=0.
       DO 30 K=1,3
    30 SUM=SUM+E(I,K)*B(K,J)
    40 W(I,J)=SUM
 C
 C---- COMPUTE T = B(TRANSPOSE)*E*B
-      DO 60 I=1,NNPE
-      DO 60 J=I,NNPE
+      DO 60 I=1,NNPE*NSD
+      DO 60 J=I,NNPE*NSD
       SUM=0.
       DO 50 K=1,3
    50 SUM=SUM+B(K,I)*W(K,J)
       T(I,J)=SUM*THICK*JAD*GW(II)*GW(JJ)
    60 T(J,I)=T(I,J)
+
+C      DO 70 I=1,NNPE*NSD
+C      DO 70 J=1,NNPE*NSD
+C   70 CALL WR('T       ',T(I,J),1)
 
 C---- ASSEMBLE STIFFNESS MATRIX
       CALL ADSTIF(KFIX,S,FEXT,NOD,IADRES,T,RE,NSD*NNPE,N,0)
@@ -453,6 +463,10 @@ C---- COLLECT NODAL COORDINATES
    20 X(2,I)=XX(2,NOD(I,N))
 
       CALL Q9DN(C,DN)
+C---- DEBUG: print DN
+      DO 90 I=1,NSD
+      DO 90 J=1,NNPE
+   90 CALL WR('DN      ',DN(I,J),1)
 C      DO 30 J=1,2
 C      DO 30 I=1,9
 C   30 CALL WR('N       ', DN(J,I), 1)
@@ -464,6 +478,11 @@ C---- TODO: potentially accel with different loop order
       DO 40 K=1,NNPE
    40 TEMP = TEMP+DN(I,K)*X(J,K)
    30 JA(I,J)=TEMP
+C---- DEBUG print JA
+      DO 100 I=1,NSD
+      DO 100 J=1,NSD
+  100 CALL WR('JA      ',JA(I,J),1)
+
 C---- Compute GAMA = J^-1
       JAD = JA(1,1)*JA(2,2)-JA(1,2)*JA(2,1)
       GAMA(1,1) = JA(2,2)/JAD
