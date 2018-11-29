@@ -379,17 +379,17 @@ C
 C     THIS SUBROUTINE ASSUMES THAT THE ELEMENT THICKNESS IS RMAT(3,MAT)
 C
 C     Initialize gaussian locations and weights
-      DP = 1
-C      GQ(1) = 0.0000000000000000
-C      GQ(2) = -0.7745966692414834
-C      GQ(3) = 0.7745966692414834
+      DP = 3
+      GQ(1) = 0.0000000000000000
+      GQ(2) = -0.7745966692414834
+      GQ(3) = 0.7745966692414834
 
-C      GW(1) = 0.8888888888888888
-C      GW(2) = 0.5555555555555556
-C      GW(3) = 0.5555555555555556
+      GW(1) = 0.8888888888888888
+      GW(2) = 0.5555555555555556
+      GW(3) = 0.5555555555555556
 
-      GQ(1) = 0
-      GW(1) = 2
+C      GQ(1) = -0.7745966692414834
+C      GW(1) = 0.5555555555555556
 C     Clear B matrix
       DO 10 I=1,3
       DO 10 J=1,NSD*NNPE
@@ -412,9 +412,11 @@ C---- COLLECT NODAL COORDS., EVALUATE SHAPE FUNCTIONS AND B-MATRIX
 C---- EVALUATE MATERIAL MATRIX, E, FOR PLANE STRESS
       CALL EMATRX(E,MAT)
 
-      DO 70 I=1,3
-      DO 70 J=1,NNPE*NSD
-   70 CALL WR('B       ',B(I,J),1)
+
+C---- DEBUG print E
+C     DO 80 I=1,3
+C     DO 80 J=1,3
+C  80 CALL WR('E       ',E(I,J),1)
 
 C---- COMPUTE  E*B
       DO 40 I=1,3
@@ -422,7 +424,12 @@ C---- COMPUTE  E*B
       SUM=0.
       DO 30 K=1,3
    30 SUM=SUM+E(I,K)*B(K,J)
-   40 W(I,J)=SUM
+   40   W(I,J)=SUM
+
+C---- DEBUG print W
+C     DO 90 I=1,3
+C     DO 90 J=1,NNPE*NSD
+C  90 CALL WR('W       ',W(I,J),1)
 C
 C---- COMPUTE T = B(TRANSPOSE)*E*B
       DO 60 I=1,NNPE*NSD
@@ -431,11 +438,13 @@ C---- COMPUTE T = B(TRANSPOSE)*E*B
       DO 50 K=1,3
    50 SUM=SUM+B(K,I)*W(K,J)
       T(I,J)=SUM*THICK*JAD*GW(II)*GW(JJ)
+C      T(I,J)=SUM
    60 T(J,I)=T(I,J)
 
-C      DO 70 I=1,NNPE*NSD
-C      DO 70 J=1,NNPE*NSD
-C   70 CALL WR('T       ',T(I,J),1)
+C---- DEBUG print T
+C     DO 70 I=1,NNPE*NSD
+C     DO 70 J=1,NNPE*NSD
+C  70 CALL WR('T       ',T(I,J),1)
 
 C---- ASSEMBLE STIFFNESS MATRIX
       CALL ADSTIF(KFIX,S,FEXT,NOD,IADRES,T,RE,NSD*NNPE,N,0)
@@ -464,12 +473,10 @@ C---- COLLECT NODAL COORDINATES
 
       CALL Q9DN(C,DN)
 C---- DEBUG: print DN
-      DO 90 I=1,NSD
-      DO 90 J=1,NNPE
-   90 CALL WR('DN      ',DN(I,J),1)
-C      DO 30 J=1,2
-C      DO 30 I=1,9
-C   30 CALL WR('N       ', DN(J,I), 1)
+C     DO 90 I=1,NSD
+C     DO 90 J=1,NNPE
+C  90 CALL WR('DN      ',DN(I,J),1)
+
 C---- Compute JA = DN*X
 C---- TODO: potentially accel with different loop order
       DO 30 I=1,NSD
@@ -479,9 +486,9 @@ C---- TODO: potentially accel with different loop order
    40 TEMP = TEMP+DN(I,K)*X(J,K)
    30 JA(I,J)=TEMP
 C---- DEBUG print JA
-      DO 100 I=1,NSD
-      DO 100 J=1,NSD
-  100 CALL WR('JA      ',JA(I,J),1)
+C     DO 100 I=1,NSD
+C     DO 100 J=1,NSD
+C 100 CALL WR('JA      ',JA(I,J),1)
 
 C---- Compute GAMA = J^-1
       JAD = JA(1,1)*JA(2,2)-JA(1,2)*JA(2,1)
@@ -520,20 +527,20 @@ C     Need NSD == 2, NNPE = 9
 C
 C---- Collect TEMP [(xi^2-xi)/2, xi^2-1, (xi^2-xi)/2; etta...]
       TEMP(1,1)=(C(1)*C(1)-C(1))/2.
-      TEMP(1,2)=C(1)*C(1)-1.
+      TEMP(1,2)=1.-C(1)*C(1)
       TEMP(1,3)=(C(1)*C(1)+C(1))/2.
 
       TEMP(2,1)=(C(2)*C(2)-C(2))/2.
-      TEMP(2,2)=C(2)*C(2)-1.
+      TEMP(2,2)=1.-C(2)*C(2)
       TEMP(2,3)=(C(2)*C(2)+C(2))/2.
 
 C---- Collect DTEMP[xi-1/2,      2xi,    xi+1/2;      etta...]
       DTEMP(1,1)=C(1)-1./2.
-      DTEMP(1,2)=2.*C(1)
+      DTEMP(1,2)=-2.*C(1)
       DTEMP(1,3)=C(1)+1./2.
 
       DTEMP(2,1)=C(2)-1./2.
-      DTEMP(2,2)=2.*C(2)
+      DTEMP(2,2)=-2.*C(2)
       DTEMP(2,3)=C(2)+1./2.
 C---- Construct N,xi and N,etta
       DN(1,1) = DTEMP(1,1)*TEMP(2,1)
