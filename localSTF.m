@@ -5,21 +5,27 @@ function K = localSTF(X,mat)
     t = mat(3); % thickness
     e = mat(1); % mod of elasticity
     v = mat(2); % poisson ratio
-    %c = [-0.7745966692414834,-0.7745966692414834];
-    c = [0 0];
+    dp = 3;
+    GQ = [0 -0.7745966692414834,0.7745966692414834];
+    GW = [ 0.8888888888888888 0.5555555555555556 0.5555555555555556 ];
     E = Elastic(v,e);
-    B = Bmat(X,c);
-    K = B'*E*B;
+    K = zeros(18,18,9);
+    
+    for i=1:dp
+        for j=1:dp
+            [B,J] = Bmat(X,[GQ(i), GQ(j)]);
+                K(:,:,i*dp-dp+j) = B'*E*B*t*det(J)*GW(i)*GW(j);
+        end
+    end
 end
 
-function B = Bmat(X,c)
+function [B,J] = Bmat(X,c)
     DN = PartialN(c);    
     J = zeros(2,2);
     J = DN*X';
     
     S = [1 0 0 0; 0 0 0 1; 0 1 1 0];
     G = [inv(J),zeros(2,2);zeros(2,2),inv(J)];
-    %DN = reshape(1:18,[2,9]); %
     temp = zeros(4,18);
     for i=1:9
         temp(1:2,2*i-1)=DN(:,i);

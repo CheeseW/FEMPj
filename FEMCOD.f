@@ -368,7 +368,7 @@ C#####################################################################
       COMMON /KONTRL/ NUMNP,NDOF,NUMEL,NNPE,NSD,NEQ,LENGTH
       COMMON /MATRL / NMAT,RMAT(5,4)
       COMMON /DEVICE/ IIN,IOUT,IBUG
-      DIMENSION GQ(1),GW(1),XX(NSD,NUMNP),KFIX(NEQ),NOD(NNPE,NUMEL),
+      DIMENSION GQ(3),GW(3),XX(NSD,NUMNP),KFIX(NEQ),NOD(NNPE,NUMEL),
      .          IADRES(NEQ),MATNUM(NUMEL),S(LENGTH),FEXT(NEQ),
      .          X(NSD,NNPE),W(3,NSD*NNPE),B(3,NSD*NNPE),
      .          E(3,3),T(NSD*NNPE,NSD*NNPE),C(NSD)
@@ -442,9 +442,9 @@ C      T(I,J)=SUM
    60 T(J,I)=T(I,J)
 
 C---- DEBUG print T
-C     DO 70 I=1,NNPE*NSD
-C     DO 70 J=1,NNPE*NSD
-C  70 CALL WR('T       ',T(I,J),1)
+C      DO 70 I=1,NNPE*NSD
+C      DO 70 J=1,NNPE*NSD
+C   70 CALL WR('T       ',T(I,J),1)
 
 C---- ASSEMBLE STIFFNESS MATRIX
       CALL ADSTIF(KFIX,S,FEXT,NOD,IADRES,T,RE,NSD*NNPE,N,0)

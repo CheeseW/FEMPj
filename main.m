@@ -18,6 +18,10 @@ for i=1:nels
 end
 
 T = importdata('tmat');
-T = reshape(T,[18,18]);
+dp2 = length(T)/18/18;
+T = reshape(T,[18,18,dp2]);
 W = importdata('wmat');
 W = reshape(W,[18,3]);
+% max(max(max(abs(R-T)./abs(R))))
+% eig(sum(R,3))
+% eig(sum(T,3))
