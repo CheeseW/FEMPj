@@ -1,17 +1,21 @@
 clear
 clc
+%% different settings
+problems = {struct('file','q9single','corners',1:4)
+            struct('file','cstdata', 'corners',1:3)
+    };
 %% load data and visualize 
-filename = 'q9single';
-[nodes, els, mats, ndof, d] = parseInput(filename);
-VisualiseMesh(nodes, els(:,1:5),[],'e','b');
-hold off
+filename = problems{2}.file;
+corners  = problems{2}.corners;
+visualizeInput(filename, corners, 'fds');
+[nodes, els, mats, BC, ndof, d] = parseInput(filename);
+nnodes = size(nodes,1);
+nels   = size(els,1);
+nnpe   = size(els,2)-1;
+nmats  = size(mats,1);
 
 %% assemble stiffness matrix
 % 
-% nnodes = size(nodes,1);
-% nels   = size(els,1);
-% nnpe   = size(els,2)-1;
-% nmats  = size(mats,1);
 % 
 % K = sparse(nnodes*ndof,nnodes*ndof);
 % 

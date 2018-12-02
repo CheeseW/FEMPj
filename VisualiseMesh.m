@@ -1,11 +1,8 @@
-function VisualiseMesh(nodes, els,strains,scheme,numbering)
+function VisualiseMesh(nodes,els,C,numbering)
 % visualize the 2d mesh
 % nodes, ele : structure for nodes and mesh
-% strains    : strain in each element
-% scheme     : 'e' - color by element numbering
-%              's' - color by strain
-%              'm' - color by material number
-% number     : 'n' - number nodes only
+% C          : color for each element
+% numbering  : 'n' - number nodes only
 %              'e' - number elements only
 %              'b' - number both
 %              no numbering otherwise
@@ -13,16 +10,13 @@ function VisualiseMesh(nodes, els,strains,scheme,numbering)
 % collect mesh info
     nnode = size(nodes,1);
     nel   = size(els,1);
-    nnpe  = size(els,2)-1;
+    nnpe  = size(els,2);
 
     X = zeros(nnpe,nel);
     Y = zeros(nnpe,nel);
     for i=1:nel
-        X(:,i) = nodes(els(i,2:end),1);
-        Y(:,i) = nodes(els(i,2:end),2);
-    end
-    if (scheme=='e')
-        C = 1:nel;
+        X(:,i) = nodes(els(i,:),1);
+        Y(:,i) = nodes(els(i,:),2);
     end
         patch(X,Y,C);
     if (numbering=='n'||numbering == 'b')
