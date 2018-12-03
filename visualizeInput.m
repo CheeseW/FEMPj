@@ -42,8 +42,8 @@ function visualizeInput(filename, shapeN, bndr)
    end
    if any(strfind(bndr,'s'))
         % plot the supports
-        idxrx = nd(BC(:,2)==1);            % roller support in x
-        idxry = nd(BC(:,3)==1);            % roller support in y
+        idxrx = nd(BC(:,2)==1&BC(:,3)~=1);            % roller support in x
+        idxry = nd(BC(:,3)==1&BC(:,2)~=1);            % roller support in y
         idxpn = nd(all(BC(:,2:3)==1,2));   % pin support
 
         % add support conditions
