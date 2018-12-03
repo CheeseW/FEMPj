@@ -10,7 +10,7 @@ end
     nel   = meta(3);
     nnpe  = meta(4);
     d     = meta(5);
-    nmats = meta(6);
+    nmat = meta(6);
     nodes = zeros(nnode,d);    
     els   = zeros(nel  ,nnpe+1);    
     BC    = [];
@@ -47,7 +47,7 @@ end
             end
         end
     end
-    for i=1:nmats
+    for i=1:nmat
         tline = fgetl(fh);
         if ischar(tline) 
             data = sscanf(tline,'%d %f %f %f'); % assuming only 3 props needed
