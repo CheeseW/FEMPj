@@ -1,4 +1,5 @@
 function VisualiseMesh(nodes,els,C,numbering)
+% VisualiseMesh(nodes,els,C,numbering)
 % visualize the 2d mesh
 % nodes, ele : structure for nodes and mesh
 % C          : color for each element

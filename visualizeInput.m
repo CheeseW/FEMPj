@@ -1,4 +1,5 @@
 function visualizeInput(filename, shapeN, bndr)
+% visualizeInput(filename, shapeN, bndr)
 % need to be in 2d so d==2, also only consider displacements and forces
 % no moment and rotation considered
 % bndr       : 'd' - displacement

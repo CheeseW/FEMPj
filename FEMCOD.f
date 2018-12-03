@@ -131,8 +131,13 @@ C
 C---- OUTPUT SOLUTION
 C
       WRITE(IOUT,2004)
+      IF (NSD==2) THEN
       WRITE(IOUT,2005)
-     . ((I,J,A(MPDISP+(I-1)*NDOF+J-1),J=1,NDOF),I=1,NUMNP)
+     .     ((I,J,A(MPDISP+(I-1)*NDOF+J-1),J=1,NDOF),I=1,NUMNP)
+      ELSE
+      WRITE(IOUT,2006)
+     .        ((I,J,A(MPDISP+(I-1)*NDOF+J-1),J=1,NDOF),I=1,NUMNP)
+      END IF
 C
 C---- POST-PROCESS DATA
       CALL Q9STR(A(MPCORD),IA(IPNOD),IA(IPMAT),A(MPDISP))
@@ -151,7 +156,8 @@ C
  2004 FORMAT(///,21H NODAL POINT SOLUTION,2X,
      .       39H(NODE #, NODAL DOF #, VALUE OF THE DOF),/,
      .       1X,20(1H-))
- 2005 FORMAT(3(2I5,E14.6,2X))
+ 2005 FORMAT(2(2I5,E14.6,2X))
+ 2006 FORMAT(3(2I5,E14.6,2X))
       END
 C######################################################################
       SUBROUTINE OPENER(IOP)
