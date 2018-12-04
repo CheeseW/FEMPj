@@ -1,4 +1,4 @@
-function re = Q9Re(nodes, BdrIdx, st)
+function re = Q9Re(nodes, BdrIdx, st, dim)
 % re = Q9Re(nodes, BdrIdx, st)
 % function for compute consistent nodal load
 % for Q9 mesh under the following conditino
@@ -25,10 +25,10 @@ right = 3:lelb-1:lbdr;
 
 consist = [1 4 1];
 consist = consist/sum(consist);
-lel = nodes(BdrIdx(right),1)-nodes(BdrIdx(left),1);
+lel = nodes(BdrIdx(right),dim)-nodes(BdrIdx(left),dim);
 fel = lel*consist;
 re(left,2)  = re(left,2)+fel(:,1);
-re(mid,2)   = re(mid,2)+fel(:,1);
-re(right,2) = re(right,2)+fel(:,2);
-
+re(mid,2)   = re(mid,2)+fel(:,2);
+re(right,2) = re(right,2)+fel(:,3);
+re = re*st;
 end
