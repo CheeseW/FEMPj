@@ -4,7 +4,7 @@ clc
 problems = {struct('file','q9single','corners',1:4)
             struct('file','cstdata', 'corners',1:3)
     };
-%% load data and visualize 
+%% load data and get parameters 
 % input
 filename = problems{1}.file;
 corners  = problems{1}.corners;
@@ -17,11 +17,12 @@ nmats  = size(mats,1);
 %% assemble stiffness matrix
 K = sparse(nnodes*ndof,nnodes*ndof);
 for i=1:nels
-    X = zeros(d,nnpe);
+%     X = zeros(d,nnpe);
     el = els(i,:);
-    for j=1:nnpe
-        X(:,j) = nodes(el(j+1),:)';
-    end
+    X = nodes(el(2:end),:)';
+%     for j=1:nnpe
+%         X(:,j) = nodes(el(j+1),:)';
+%     end
     R = localSTF(X, mats(i,:)); 
     idx = [el(2:end)*2-1; el(2:end)*2];
     idx = reshape(idx,1,nnpe*ndof);
@@ -37,7 +38,7 @@ for i=1:ndof
     Re(nmmnIdx) = Re(nmmnIdx)+BC(mask,1+ndof+i);
 end
 %% deal with direchlet condition
-idx = 1:ndof*nnodes;
+ndidx = 1:ndof*nnodes;
 drchIdx = [];
 drchVal = [];
 for i=1:ndof
@@ -45,18 +46,28 @@ for i=1:ndof
     drchIdx = [drchIdx; BC(mask,1)*ndof-ndof+i];
     drchVal = [drchVal; BC(mask,1+ndof+i)];    
 end
-idx(drchIdx) = [];
-Re(idx) = Re(idx) - K(idx,drchIdx)*drchVal;
+ndidx(drchIdx) = [];
+Re(ndidx) = Re(ndidx) - K(ndidx,drchIdx)*drchVal;
 
 Re(drchIdx) = [];
 K(drchIdx,:) = [];
 K(:,drchIdx) = [];
+%% solve and reformat
 sol = K\Re;
 result = zeros(nnodes*ndof,1);
 result(drchIdx) = result(drchIdx)+drchVal;
-result (idx) = result(idx)+sol;
+result (ndidx) = result(ndidx)+sol;
 result = reshape(result,ndof,nnodes)';
-% 
+%% compute nodal stress for each element
+stress = zeros(3,nnpe,nels);
+for i=1:nels
+    X = zeros(d,nnpe);
+    el = els(i,:);
+    X = nodes(el(2:end),:)';
+    D = result(el(2:end),:)';
+    stress(:,:,i) = elementStress(X, mats(i,:),D); 
+end
+%% others
 % T = importdata('tmat');
 % dp2 = length(T)/18/18;
 % T = reshape(T,[18,18,dp2]);
