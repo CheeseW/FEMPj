@@ -614,10 +614,10 @@ C
       DO 100 N=1,NUMEL
 C
 C---- COLLECT NODAL DISPLACEMENTS
-         DO 20 I=1,3
-         DO 20 J=1,2
- 20         D((I-1)*2+J)=DD(J,NOD(I,N))
-            MAT=MATNUM(N)
+         DO 20 I=1,NNPE
+         DO 20 J=1,NSD
+ 20         D((I-1)*NSD+J)=DD(J,NOD(I,N))
+         MAT=MATNUM(N)
 
          DO 200 NN=1,NNPE
 C---- COLLECT REFERENCE COORD, EVALUATE SHAPE FUNCTIONS AND B-MATRIX
@@ -631,7 +631,7 @@ C
 C---- COMPUTE B*D
             DO 40 I=1,3
                TEMP=0.
-               DO 30 J=1,6
+               DO 30 J=1,NSD*NNPE
  30               TEMP=TEMP+B(I,J)*D(J)
  40            W(I,NN)=TEMP
 C
@@ -643,13 +643,17 @@ C---- COMPUTE E*(B*D)
  60            STRS(I,NN)=TEMP
  200  CONTINUE
 C---- OUTPUT RESULTS
-         WRITE(IOUT,1001)N,((STRS(I,J),I=1,3),J=1,NNPE)
+      DO 80 J=1,NNPE
+ 80      WRITE(IOUT,1001)N,J,(STRS(I,J),I=1,3)
+
 C
  100  CONTINUE
 C
       RETURN
- 1000 FORMAT(///,34H ELEMENT STRESSES  (#,SXX,SYY,SXY),/,1X,16(1H-))
- 1001 FORMAT(I5,27E12.4)
+ 1000 FORMAT(///,
+     .     53H ELEMENT STRESSES  (NODE #, NODAL DOF #, SXX,SYY,SXY),
+     .     /,1X,16(1H-))
+ 1001 FORMAT(2I5,3E12.4)
 
       END
 C######################################################################
