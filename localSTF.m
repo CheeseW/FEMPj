@@ -13,7 +13,7 @@ function K = localSTF(X,mat)
     
     for i=1:dp
         for j=1:dp
-            [B,J] = Bmat(X,[GQ(i), GQ(j)    ]);
+            [B,J] = Bmat(X,[GQ(i), GQ(j)]);
                 K(:,:,i*dp-dp+j) = B'*E*B*t*det(J)*GW(i)*GW(j);
         end
     end

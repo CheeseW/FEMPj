@@ -6,7 +6,7 @@ problems = {struct('file','q9single','corners',1:4)
     };
 %% load data and get parameters 
 % input
-filename = problems{1}.file;
+filename = 'q92patch';
 corners  = problems{1}.corners;
 [nodes, els, mats, BC, ndof, d] = parseInput(filename);
 nnodes = size(nodes,1);
@@ -17,13 +17,14 @@ nmats  = size(mats,1);
 %% assemble stiffness matrix
 K = sparse(nnodes*ndof,nnodes*ndof);
 for i=1:nels
+% for i=1:1
 %     X = zeros(d,nnpe);
     el = els(i,:);
     X = nodes(el(2:end),:)';
 %     for j=1:nnpe
 %         X(:,j) = nodes(el(j+1),:)';
 %     end
-    R = localSTF(X, mats(i,:)); 
+    R = localSTF(X, mats(el(1),:)); 
     idx = [el(2:end)*2-1; el(2:end)*2];
     idx = reshape(idx,1,nnpe*ndof);
     symR = sum(R,3);
@@ -65,7 +66,7 @@ for i=1:nels
     el = els(i,:);
     X = nodes(el(2:end),:)';
     D = result(el(2:end),:)';
-    stress(:,:,i) = elementStress(X, mats(i,:),D); 
+    stress(:,:,i) = elementStress(X, mats(el(1),:),D); 
 end
 %% others
 % T = importdata('tmat');
