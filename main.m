@@ -6,7 +6,7 @@ problems = {struct('file','q9single','corners',1:4)
     };
 %% load data and get parameters 
 % input
-filename = 'q92patch';
+filename = 'q9patch';
 corners  = problems{1}.corners;
 [nodes, els, mats, BC, ndof, d] = parseInput(filename);
 nnodes = size(nodes,1);
