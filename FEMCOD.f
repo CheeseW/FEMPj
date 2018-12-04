@@ -574,12 +574,83 @@ C---- Construct N,xi and N,etta
 C######################################################################
       SUBROUTINE Q9STR(XX,NOD,MATNUM,DD)
       IMPLICIT DOUBLE PRECISION (A-H,O-Z), INTEGER (I-N)
+      DOUBLE PRECISION LOC, JAD
       COMMON /KONTRL/ NUMNP,NDOF,NUMEL,NNPE,NSD,NEQ,LENGTH
       COMMON /MATRL / NMAT,RMAT(5,4)
       COMMON /DEVICE/ IIN,IOUT,IBUG
       DIMENSION XX(NSD,NUMNP),NOD(NNPE,NUMEL),MATNUM(NUMEL),
-     .          DD(NDOF,NUMNP),X(NSD,NNPE),W(3),B(3,2*NNPE),AA(3),BB(3),E(3,3),
-     .          D(6),STRS(3)
+     .          DD(NDOF,NUMNP),X(NSD,NNPE),W(3,NNPE),B(3,NSD*NNPE),
+     .          D(NDOF*NNPE),STRS(3,NNPE),E(3,3),LOC(NSD,NNPE),
+     .          C(NSD)
+C
+C---- Q9STR-- q9 element STRESS
+C---- compute and output nodal stress for an q9 element (STRS=E*B(c)*D)
+C
+      DO 10 I=1,3
+      DO 10 J=1,6
+ 10      B(I,J)=0.
+C
+         LOC(1,1) = -1;
+         LOC(1,2) =  1;
+         LOC(1,3) =  1;
+         LOC(1,4) = -1;
+         LOC(1,5) =  0;
+         LOC(1,6) =  1;
+         LOC(1,7) =  0;
+         LOC(1,8) = -1;
+         LOC(1,9) =  0;
+
+         LOC(2,1) = -1;
+         LOC(2,2) = -1;
+         LOC(2,3) =  1;
+         LOC(2,4) =  1;
+         LOC(2,5) = -1;
+         LOC(2,6) =  0;
+         LOC(2,7) =  1;
+         LOC(2,8) =  0;
+         LOC(2,9) =  0;
+
+      WRITE(IOUT,1000)
+      DO 100 N=1,NUMEL
+C
+C---- COLLECT NODAL DISPLACEMENTS
+         DO 20 I=1,3
+         DO 20 J=1,2
+ 20         D((I-1)*2+J)=DD(J,NOD(I,N))
+            MAT=MATNUM(N)
+
+         DO 200 NN=1,NNPE
+C---- COLLECT REFERENCE COORD, EVALUATE SHAPE FUNCTIONS AND B-MATRIX
+            DO 70 K=1,NSD
+ 70            C(K) = LOC(K,NN)
+            CALL Q9(C,X,XX,NOD,B,JAD,N)
+C
+C---- EVALUATE MATERIAL MATRIX FOR PLANE STRESS
+            CALL EMATRX(E,MAT)
+C
+C---- COMPUTE B*D
+            DO 40 I=1,3
+               TEMP=0.
+               DO 30 J=1,6
+ 30               TEMP=TEMP+B(I,J)*D(J)
+ 40            W(I,NN)=TEMP
+C
+C---- COMPUTE E*(B*D)
+            DO 60 I=1,3
+               TEMP=0.
+               DO 50 J=1,3
+ 50               TEMP=TEMP+E(I,J)*W(J,NN)
+ 60            STRS(I,NN)=TEMP
+ 200  CONTINUE
+C---- OUTPUT RESULTS
+         WRITE(IOUT,1001)N,((STRS(I,J),I=1,3),J=1,NNPE)
+C
+ 100  CONTINUE
+C
+      RETURN
+ 1000 FORMAT(///,34H ELEMENT STRESSES  (#,SXX,SYY,SXY),/,1X,16(1H-))
+ 1001 FORMAT(I5,27E12.4)
+
       END
 C######################################################################
       SUBROUTINE BEMSTF(X,KFIX,NOD,IADRES,MATNUM,S,FEXT)
