@@ -1,4 +1,5 @@
 function [nodes, els, mats, BC, ndof, d] = parseInput(filename)
+% BC - each row: [node#, ndof x condType, ndof x value]
     fh = fopen(filename,'r');
     tline = fgetl(fh);
     tline = fgetl(fh);

@@ -6,6 +6,7 @@ function re = Q9Re(nodes, BdrIdx, st, dim)
 % and straight, the edge node of elements on 
 % the boundary has to be in the middle
 % nodes  - the nodes parsed from input file
+% Also, the thickness is assumed to be 1
 % BdrIdx - the node number of nodes on the boundary
 % st     - the stress on the boundary
 % re     - resulted nodal force
