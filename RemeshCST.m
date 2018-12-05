@@ -9,7 +9,7 @@ filename = 'cstdata';
    nmats  = size(mats,1);
 
    %rework connectivity to make q4 with center nodes first
-   newEl = zeros(nels/4,5);
+   newEl = zeros(nels/4,9+1);
    for i=1:nels/4
         newEl(i,1) = els(i*4-4+1,1); 
         newEl(i,5+1) = els(i*4-4+1,3+1);
@@ -22,7 +22,6 @@ filename = 'cstdata';
             assert(newEl(i,5+1)==els(i*4-4+j,3+1));
         end
    end
-   VisualiseMesh(nodes, newEl(:,2:5),1:nels/4,'b'); 
 
    newNode = zeros((nnodes-7)*2+13,d);
    % renumber the nodes that are in the mesh right now
@@ -46,7 +45,19 @@ filename = 'cstdata';
    newNode(idx*2-1,:) = oldNode;
    idx = idx(1:end-1);
    newNode(idx*2,:) = (oldNode(1:end-1,:)+oldNode(2:end,:))/2;
-   plot(nodes(:,1),nodes(:,2),'rx')
-   hold on
-   plot(newNode(:,1),newNode(:,2),'bo') 
-   hold off
+%    plot(nodes(:,1),nodes(:,2),'rx')
+%    hold on
+%    plot(newNode(:,1),newNode(:,2),'bo') 
+%    hold off
+    
+% renumber old nodes in elements
+newEl(:,2:6) = newEl(:,2:6)*2-1;
+% add in new nodes
+newEl(:,9+1) = newEl(:,5+1);
+newEl(:,5+1) = (newEl(:,1+1)+newEl(:,2+1))/2;
+newEl(:,6+1) = (newEl(:,2+1)+newEl(:,3+1))/2;
+newEl(:,7+1) = (newEl(:,3+1)+newEl(:,4+1))/2;
+newEl(:,8+1) = (newEl(:,4+1)+newEl(:,1+1))/2;
+figure
+VisualiseMesh(newNode, newEl(:,[5 6 9 8 7 5 2 3 4 1]+1),1:nels/4,'b'); 
+
