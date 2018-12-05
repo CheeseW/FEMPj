@@ -1,6 +1,8 @@
 clear
 clc
-
+% script for remeshing data in file 'cstdata' to q9 element
+% this script depend very much on the format and meshing order in 'cstdata'
+% modification maybe (and most likely) needed if applied to other files
 filename = 'cstdata';
    [nodes, els, mats, BC, ndof, d] = parseInput(filename); 
    nnodes = size(nodes,1);
@@ -58,6 +60,32 @@ newEl(:,5+1) = (newEl(:,1+1)+newEl(:,2+1))/2;
 newEl(:,6+1) = (newEl(:,2+1)+newEl(:,3+1))/2;
 newEl(:,7+1) = (newEl(:,3+1)+newEl(:,4+1))/2;
 newEl(:,8+1) = (newEl(:,4+1)+newEl(:,1+1))/2;
-figure
-VisualiseMesh(newNode, newEl(:,[5 6 9 8 7 5 2 3 4 1]+1),1:nels/4,'b'); 
+% figure
+% VisualiseMesh(newNode, newEl(:,[5 6 9 8 7 5 2 3 4 1]+1),1:nels/4,'b'); 
+
+% write result to correct format
+fh = fopen('baseMesh','wt');
+fprintf(fh,'ANALYSIS OF PLATE WITH HOLE -- DATA FOR %d Q9 ELEMENTS', size(newEl,1));
+fprintf(fh,'\n');
+fprintf(fh,'%5d%5d%5d%5d%5d%5d',size(newNode,1),ndof,size(newEl,1),9,d,nmats);
+fprintf(fh,'\n');
+for i=1:size(newNode,1)
+    fprintf(fh,'%5d    000000%10.3f%10.3f%10.3f%10.3f',i,newNode(i,1),newNode(i,2),0);
+    fprintf(fh,'\n');
+    fprintf(fh,'               %10g%10g',0,0);
+    fprintf(fh,'\n');    
+end
+for i=1:size(newEl,1)
+    fprintf(fh,'%5d%5d',i,newEl(i,1));
+    for j=1:9
+        fprintf(fh,'%5d',newEl(i,j+1));
+    end
+    fprintf(fh,'\n');
+end
+for i=1:size(mats,1)
+    fprintf(fh,'%5d%10g%10g%10g',i,mats(i,1),mats(i,2),mats(i,3));
+    fprintf(fh,'\n');    
+end
+
+fclose(fh);
 

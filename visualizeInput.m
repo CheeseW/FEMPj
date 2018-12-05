@@ -13,9 +13,8 @@ function visualizeInput(filename, shapeN, bndr)
    nmats  = size(mats,1);
    VisualiseMesh(nodes, els(:,shapeN+1),1:nels,'b'); 
 
+   if ~isempty(BC)
    nd = BC(:,1);
-
-   
    hold on
    % asumming the first 2 dof's represent displacement
    if any(strfind(bndr,'d'))
@@ -53,4 +52,5 @@ function visualizeInput(filename, shapeN, bndr)
         plot(nodes(idxpn,1),nodes(idxpn,2),'^','MarkerFaceColor','g','MarkerSize',10);
    end
    hold off
+   end
 end
